@@ -15,9 +15,12 @@ jobs:
           java-version: '17'
           distribution: 'corretto'
 
-      - name: Build & Test (Gradle)
-        run: ./gradlew clean test --no-daemon
+      - name: Grant execute permission for Gradle wrapper
+        run: chmod +x gradlew
 
+      - name: Run tests
+        run: ./gradlew clean test --no-daemon
+      
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
