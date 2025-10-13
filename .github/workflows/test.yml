@@ -4,15 +4,6 @@ on:
   pull_request:
     branches: [ 박주환 ]
 
-env:
-  SPRING_PROFILES_ACTIVE: test
-  AWS_S3_ACCESS_KEY: ${{ secrets.AWS_S3_ACCESS_KEY }}
-  AWS_S3_SECRET_KEY: ${{ secrets.AWS_S3_SECRET_KEY }}
-  AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}
-  AWS_S3_REGION: ${{ vars.AWS_S3_REGION }}
-  AWS_S3_PRESIGNED_URL_EXPIRATION: ${{ vars.AWS_S3_PRESIGNED_URL_EXPIRATION}}
-  STORAGE_TYPE: ${{ vars.STORAGE_TYPE }}
-
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -30,6 +21,14 @@ jobs:
 
       - name: Run tests
         run: ./gradlew clean test --no-daemon
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          AWS_S3_ACCESS_KEY: ${{ secrets.AWS_S3_ACCESS_KEY }}
+          AWS_S3_SECRET_KEY: ${{ secrets.AWS_S3_SECRET_KEY }}
+          AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}
+          AWS_S3_REGION: ${{ vars.AWS_S3_REGION }}
+          AWS_S3_PRESIGNED_URL_EXPIRATION: ${{ vars.AWS_S3_PRESIGNED_URL_EXPIRATION }}
+          STORAGE_TYPE: ${{ vars.STORAGE_TYPE }}
 
       - name: Upload test results
         if: always()
