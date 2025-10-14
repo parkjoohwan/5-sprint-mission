@@ -4,9 +4,6 @@ on:
   push:
     branches: [ release-test ]
 
-env:
-  ECR_PUBLIC_URI: public.ecr.aws/f4c4g2k4/discodeit
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -31,13 +28,13 @@ jobs:
       - name: Build Docker image
         run: |
           IMAGE_TAG=${{ github.sha }}
-          docker build -t $ECR_PUBLIC_URI:latest -t $ECR_PUBLIC_URI:$IMAGE_TAG .
+          docker build -t ${{ ECR_PUBLIC_URI }}:latest -t ${{ ECR_PUBLIC_URI }}:$IMAGE_TAG .
 
       - name: Push image
         run: |
           IMAGE_TAG=${{ github.sha }}
-          docker push $ECR_PUBLIC_URI:latest
-          docker push $ECR_PUBLIC_URI:$IMAGE_TAG
+          docker push ${{ ECR_PUBLIC_URI }}:latest
+          docker push ${{ ECR_PUBLIC_URI }}:$IMAGE_TAG
 
   deploy-to-ecs:
     needs: build-and-push
