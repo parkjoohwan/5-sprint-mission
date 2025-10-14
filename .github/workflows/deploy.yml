@@ -28,13 +28,13 @@ jobs:
       - name: Build Docker image
         run: |
           IMAGE_TAG=${{ github.sha }}
-          docker build -t ${{ ECR_PUBLIC_URI }}:latest -t ${{ ECR_PUBLIC_URI }}:$IMAGE_TAG .
+          docker build -t ${{ vars.ECR_PUBLIC_URI }}:latest -t ${{ vars.ECR_PUBLIC_URI }}:$IMAGE_TAG .
 
       - name: Push image
         run: |
           IMAGE_TAG=${{ github.sha }}
-          docker push ${{ ECR_PUBLIC_URI }}:latest
-          docker push ${{ ECR_PUBLIC_URI }}:$IMAGE_TAG
+          docker push ${{ vars.ECR_PUBLIC_URI }}:latest
+          docker push ${{ vars.ECR_PUBLIC_URI }}:$IMAGE_TAG
 
   deploy-to-ecs:
     needs: build-and-push
@@ -52,7 +52,7 @@ jobs:
           CLUSTER_NAME: ${{ vars.ECS_CLUSTER }}
           SERVICE_NAME: ${{ vars.ECS_SERVICE }}
           TASK_DEF: ${{ vars.ECS_TASK_DEFINITION }}
-          NEW_IMAGE: ${{ECR_PUBLIC_URI}}:${{ github.sha }}
+          NEW_IMAGE: ${{ vars.ECR_PUBLIC_URI }}:${{ github.sha }}
         run: |
           # 1) Get current task definition json
           aws ecs describe-task-definition --task-definition $TASK_DEF > taskdef.json
