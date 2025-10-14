@@ -25,6 +25,9 @@ jobs:
         run: |
           aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/f4c4g2k4
 
+      - name: Grant execute permission for Gradle wrapper
+        run: chmod +x gradlew
+
       - name: Build Docker image
         run: |
           IMAGE_TAG=${{ github.sha }}
