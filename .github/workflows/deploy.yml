@@ -59,18 +59,33 @@ jobs:
         run: |
           # 1) Get current task definition json
           aws ecs describe-task-definition --task-definition $TASK_DEF > taskdef.json
-          
+
           # 2) Create new task def file with updated image (jq required)
           cat taskdef.json \
-            | jq --arg IMG "$NEW_IMAGE" '.taskDefinition.containerDefinitions[0].image=$IMG | {family: .taskDefinition.family, networkMode: .taskDefinition.networkMode, containerDefinitions: .taskDefinition.containerDefinitions, volumes: .taskDefinition.volumes, taskRoleArn: .taskDefinition.taskRoleArn, executionRoleArn: .taskDefinition.executionRoleArn, cpu: .taskDefinition.containerDefinitions[0].cpu, memory: .taskDefinition.containerDefinitions[0].memory}' \
+            | jq --arg IMG "$NEW_IMAGE" '
+            .taskDefinition.containerDefinitions[0].image=$IMG
+            | {
+                family: .taskDefinition.family,
+                networkMode: .taskDefinition.networkMode,
+                requiresCompatibilities: .taskDefinition.requiresCompatibilities,
+                cpu: (.taskDefinition.cpu // "256"),
+                memory: (.taskDefinition.memory // "512"),
+                taskRoleArn: (.taskDefinition.taskRoleArn // ""),
+                executionRoleArn: (.taskDefinition.executionRoleArn // ""),
+                containerDefinitions: .taskDefinition.containerDefinitions,
+                volumes: .taskDefinition.volumes
+              }' \
             > new-task.json
 
-          # 3) register new task definition
+          echo "✅ Generated new task definition JSON:"
+          cat new-task.json | jq
+
+          # 3) Register new task definition
           aws ecs register-task-definition --cli-input-json file://new-task.json > registered.json
           NEW_REV=$(jq -r '.taskDefinition.taskDefinitionArn' registered.json)
-          echo "New task def ARN: $NEW_REV"
+          echo "✅ New task def ARN: $NEW_REV"
 
-          # 4) Scale down service to 0 to avoid running multiple costly tasks (프리티어 고려) 1
+          # 4) Scale down service to 0 to avoid running multiple costly tasks
           aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --desired-count 0
 
           # 5) Update service to use new task def and scale back to 1
