@@ -70,7 +70,7 @@ jobs:
           NEW_REV=$(jq -r '.taskDefinition.taskDefinitionArn' registered.json)
           echo "New task def ARN: $NEW_REV"
 
-          # 4) Scale down service to 0 to avoid running multiple costly tasks (프리티어 고려)
+          # 4) Scale down service to 0 to avoid running multiple costly tasks (프리티어 고려) 1
           aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --desired-count 0
 
           # 5) Update service to use new task def and scale back to 1
