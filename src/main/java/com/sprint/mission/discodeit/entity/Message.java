@@ -1,57 +1,57 @@
 package com.sprint.mission.discodeit.entity;
 
-import java.util.UUID;
+import com.sprint.mission.discodeit.entity.base.BaseUpdatableEntity;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 
-public class Message extends BaseEntity {
-    private String text;
-    private UUID channelId;
-    private UUID userId;
+@Getter
+@Entity
+@Table(name = "messages")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class Message extends BaseUpdatableEntity {
 
-    public Message(String text, UUID channelId, UUID userId) {
-        super();
-        this.text = text;
-        this.channelId = channelId;
-        this.userId = userId;
+
+  @Column(columnDefinition = "text", nullable = false)
+  private String content;
+  @ManyToOne(optional = false)
+  @JoinColumn(name = "channel_id", nullable = false)
+  private Channel channel;
+
+  @ManyToOne
+  @JoinColumn(name = "author_id")
+  private User author;
+
+  @OneToMany(fetch = FetchType.LAZY, orphanRemoval = true, cascade = CascadeType.ALL)
+  @JoinTable(
+      name = "message_attachments",
+      joinColumns = @JoinColumn(name = "message_id"),
+      inverseJoinColumns = @JoinColumn(name = "attachment_id")
+  )
+  @BatchSize(size = 50)
+  @Builder.Default
+  private List<BinaryContent> attachments = new ArrayList<>();
+
+
+  public void update(String newContent) {
+
+    if (newContent != null && !newContent.equals(this.content)) {
+      this.content = newContent;
     }
-
-    public String getText() {
-        return text;
-    }
-
-    private void setText(String text) {
-        this.text = text;
-    }
-
-    public UUID getChannelId() {
-        return channelId;
-    }
-
-    private void setChannelId(UUID channelId) {
-        this.channelId = channelId;
-    }
-
-    public UUID getUserId() {
-        return userId;
-    }
-
-    private void setUserId(UUID userId) {
-        this.userId = userId;
-    }
-
-    public void update(String text) {
-        setText(text);
-        setUpdatedAt(System.currentTimeMillis());
-    }
-
-    @Override
-    public String toString() {
-        return "Message{" +
-            "id=" + id +
-            ", text='" + text + '\'' +
-            ", channelId=" + channelId +
-            ", userId=" + userId +
-            ", createdAt=" + createdAt +
-            ", updatedAt=" + updatedAt +
-            '}';
-    }
+  }
 }

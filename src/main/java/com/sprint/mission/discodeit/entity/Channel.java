@@ -1,116 +1,52 @@
 package com.sprint.mission.discodeit.entity;
 
+import com.sprint.mission.discodeit.entity.base.BaseUpdatableEntity;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-public class Channel extends BaseEntity {
-    private String name;
-    private String description;
-    private UUID adminUserId;
-    private List<UUID> userIds;
-    private List<UUID> messageIds;
+@Getter
+@Entity
+@Table(name = "channels")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class Channel extends BaseUpdatableEntity {
 
-    public Channel(String name, String description, UUID adminUserId) {
-        super();
-        this.name = name;
-        this.description = description;
-        this.adminUserId = adminUserId;
-        this.userIds = new ArrayList<>(List.of(adminUserId));
-        this.messageIds = new ArrayList<>();
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private ChannelType type;
+  @Column(nullable = false)
+  private String name;
+  @Column
+  private String description;
+
+  @OneToMany(mappedBy = "channel", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
+  private List<Message> messages = new ArrayList<>();
+
+  @OneToMany(mappedBy = "channel", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
+  private List<ReadStatus> readStatuses = new ArrayList<>();
+
+  public void update(String newName, String newDescription) {
+
+    if (newName != null && !newName.equals(this.name)) {
+      this.name = newName;
     }
-
-
-    public Channel(String name, String description, UUID adminUserId, List<UUID> userIds, List<UUID> messageIds) {
-        super();
-        this.name = name;
-        this.description = description;
-        this.adminUserId = adminUserId;
-        this.userIds = userIds == null ? new ArrayList<>(List.of(adminUserId)) : userIds;
-        this.messageIds = messageIds == null ? new ArrayList<>(List.of()) : messageIds;
+    if (newDescription != null && !newDescription.equals(this.description)) {
+      this.description = newDescription;
     }
-
-    public String getName() {
-        return name;
-    }
-
-    private void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    private void setDescription(String description) {
-        this.description = description;
-    }
-
-    public void update(String name, String description) {
-        setName(name);
-        setDescription(description);
-        setUpdatedAt(System.currentTimeMillis());
-    }
-
-    public List<UUID> getUserIds() {
-        return userIds;
-    }
-
-    private void setUserIds(List<UUID> userIds) {
-        this.userIds = userIds;
-    }
-
-    public UUID getAdminUserId() {
-        return adminUserId;
-    }
-
-    private void setAdminUserId(UUID adminUserId) {
-        this.adminUserId = adminUserId;
-    }
-
-    public List<UUID> getMessageIds() {
-        return messageIds;
-    }
-
-    private void setMessageIds(List<UUID> messageIds) {
-        this.messageIds = messageIds;
-    }
-
-    public void addUser(UUID userId) {
-        if (userId != null) {
-            this.userIds.add(userId);
-        }
-    }
-
-    public void removeUser(UUID userId) {
-        if (userId != null) {
-            this.userIds.remove(userId);
-        }
-    }
-
-    public void addMessage(UUID messageId) {
-        if (messageId != null) {
-            this.messageIds.add(messageId);
-        }
-    }
-
-    public void removeMessage(UUID messageId) {
-        if (messageId != null) {
-            this.messageIds.remove(messageId);
-        }
-    }
-
-    @Override
-    public String toString() {
-        return "Channel{" +
-            "id=" + id +
-            ", name='" + name + '\'' +
-            ", description='" + description + '\'' +
-            ", createdAt=" + createdAt +
-            ", updatedAt=" + updatedAt +
-            ", adminUserId=" + adminUserId +
-            ", userIds=" + userIds +
-            ", messageIds=" + messageIds +
-            '}';
-    }
+  }
 }

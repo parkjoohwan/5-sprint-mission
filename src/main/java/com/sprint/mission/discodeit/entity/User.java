@@ -1,45 +1,70 @@
 package com.sprint.mission.discodeit.entity;
 
-public class User extends BaseEntity {
-    private String name;
-    private Boolean isOnline;
+import com.sprint.mission.discodeit.dto.UserDto.UpdateCommand;
+import com.sprint.mission.discodeit.entity.base.BaseUpdatableEntity;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-    public User(String name, boolean isOnline) {
-        super();
-        this.name = name;
-        this.isOnline = isOnline;
-    }
+@Getter
+@Entity
+@Table(name = "users")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class User extends BaseUpdatableEntity {
 
-    public Boolean getOnline() {
-        return isOnline;
-    }
+  @Column(nullable = false, unique = true)
+  private String username;
 
-    private void setOnline(Boolean online) {
-        isOnline = online;
-    }
+  @Column(nullable = false, unique = true)
+  private String email;
 
-    public String getName() {
-        return name;
-    }
+  @Column(nullable = false)
+  private String password;
 
-    private void setName(String name) {
-        this.name = name;
-    }
+  @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+  @JoinColumn(name = "profile_id")
+  private BinaryContent profile;
 
-    public void update(String name, boolean isOnline) {
-        setName(name);
-        setOnline(isOnline);
-        setUpdatedAt(System.currentTimeMillis());
-    }
+  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private UserStatus status;
 
-    @Override
-    public String toString() {
-        return "User{" +
-            "id=" + id +
-            ", name='" + name + '\'' +
-            ", isOnline=" + isOnline +
-            ", createdAt=" + createdAt +
-            ", updatedAt=" + updatedAt +
-            '}';
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
+  private List<ReadStatus> readStatuses = new ArrayList<>();
+
+
+  public void update(UpdateCommand update, BinaryContent profile) {
+
+    if (update.getUsername() != null && !update.getUsername()
+                                               .equals(this.username)) {
+      this.username = update.getUsername();
     }
+    if (update.getEmail() != null && !update.getEmail()
+                                            .equals(this.email)) {
+      this.email = update.getEmail();
+    }
+    if (update.getPassword() != null && !update.getPassword()
+                                               .equals(this.password)) {
+      this.password = update.getPassword();
+    }
+    if (profile != null && !profile.equals(this.profile)) {
+      this.profile = profile;
+    }
+  }
+
+  public void updateStatus(UserStatus status) {
+    this.status = status;
+  }
 }
