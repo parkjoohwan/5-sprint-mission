@@ -55,7 +55,7 @@ jobs:
           CLUSTER_NAME: ${{ vars.ECS_CLUSTER }}
           SERVICE_NAME: ${{ vars.ECS_SERVICE }}
           TASK_DEF: ${{ vars.ECS_TASK_DEFINITION }}
-          NEW_IMAGE: ${ECR_PUBLIC_URI}:${{ github.sha }}
+          NEW_IMAGE: ${{ECR_PUBLIC_URI}}:${{ github.sha }}
         run: |
           # 1) Get current task definition json
           aws ecs describe-task-definition --task-definition $TASK_DEF > taskdef.json
