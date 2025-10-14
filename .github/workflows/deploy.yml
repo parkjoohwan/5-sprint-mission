@@ -1,0 +1,74 @@
+name: CD to ECS
+
+on:
+  push:
+    branches: [ release-test ]
+
+env:
+  ECR_PUBLIC_URI: public.ecr.aws/f4c4g2k4/discodeit
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS creds
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Login to ECR Public (us-east-1)
+        run: |
+          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/f4c4g2k4
+
+      - name: Build Docker image
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          docker build -t $ECR_PUBLIC_URI:latest -t $ECR_PUBLIC_URI:$IMAGE_TAG .
+
+      - name: Push image
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          docker push $ECR_PUBLIC_URI:latest
+          docker push $ECR_PUBLIC_URI:$IMAGE_TAG
+
+  deploy-to-ecs:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS creds
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Update ECS task definition image and deploy
+        env:
+          CLUSTER_NAME: ${{ vars.ECS_CLUSTER }}
+          SERVICE_NAME: ${{ vars.ECS_SERVICE }}
+          TASK_DEF: ${{ vars.ECS_TASK_DEFINITION }}
+          NEW_IMAGE: ${ECR_PUBLIC_URI}:${{ github.sha }}
+        run: |
+          # 1) Get current task definition json
+          aws ecs describe-task-definition --task-definition $TASK_DEF > taskdef.json
+          
+          # 2) Create new task def file with updated image (jq required)
+          cat taskdef.json \
+            | jq --arg IMG "$NEW_IMAGE" '.taskDefinition.containerDefinitions[0].image=$IMG | {family: .taskDefinition.family, networkMode: .taskDefinition.networkMode, containerDefinitions: .taskDefinition.containerDefinitions, volumes: .taskDefinition.volumes, taskRoleArn: .taskDefinition.taskRoleArn, executionRoleArn: .taskDefinition.executionRoleArn, cpu: .taskDefinition.containerDefinitions[0].cpu, memory: .taskDefinition.containerDefinitions[0].memory}' \
+            > new-task.json
+
+          # 3) register new task definition
+          aws ecs register-task-definition --cli-input-json file://new-task.json > registered.json
+          NEW_REV=$(jq -r '.taskDefinition.taskDefinitionArn' registered.json)
+          echo "New task def ARN: $NEW_REV"
+
+          # 4) Scale down service to 0 to avoid running multiple costly tasks (프리티어 고려)
+          aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --desired-count 0
+
+          # 5) Update service to use new task def and scale back to 1
+          aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --task-definition $NEW_REV --desired-count 1
